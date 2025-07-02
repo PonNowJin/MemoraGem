@@ -5,21 +5,15 @@
 1. 從對話中推測使用者在 Big Five 人格模型中的五項傾向分數（1～5，5為最強）。
 2. 列出這次使用者主要提問的重點與目的。
 3. 提取對使用者的進一步了解：如背景、偏好、知識深度、表達風格等，供未來參考。
+將2,3點整合成一句話
 
-輸出範例：
-Big Five 預測：
+輸出範例（兩項標題請完全依據預設標題 BigFivePrediction, Summary）：
+BigFivePrediction：
 - Openness: 4
 - Conscientiousness: 4
 - Extraversion: 2
 - Agreeableness: 4
 - Neuroticism: 2
 
-問題重點摘要：
-- 詢問如何實作 LLM 記憶系統
-- 有興趣使用 Gemini API 與向量資料庫
-- 想強化 prompt 設計以提取使用者資訊
-
-使用者特徵觀察：
-- 使用繁體中文，可能為台灣使用者
-- 技術能力佳，熟悉 LLM 基礎概念與實作
-- 具備自學與實作精神，重視可行性與結構清晰
+Summary：
+此台灣開發者正尋求利用 Gemini API 與向量資料庫，建構一個高效能的 LLM 記憶系統，核心目標在於透過優化的 Prompt 設計，精確提取使用者資訊。

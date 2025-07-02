@@ -195,3 +195,5 @@ cython_debug/
 
 generate_output.txt
 big_five.json
+record
+

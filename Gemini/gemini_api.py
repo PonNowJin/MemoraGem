@@ -5,7 +5,10 @@ from google.genai import types
 from google import genai
 import httpx
 import json
+import numpy as np
+import faiss
 from tools import get_data_path
+from sentence_transformers import SentenceTransformer
 load_dotenv()
 
 
@@ -20,7 +23,8 @@ def send_to_gemini(usr_prompt:str, response_file_path:str):
     client = genai.Client(api_key=API_KEY)
 
     # 原始 prompt
-    with open("Gemini/prompt.txt", "r", encoding="utf-8") as f:
+    prompt_path = get_data_path('prompt.txt')
+    with open(prompt_path, "r", encoding="utf-8") as f:
         prompt = f.read()
         
     # 加入目前使用者提問
@@ -36,17 +40,16 @@ def send_to_gemini(usr_prompt:str, response_file_path:str):
         }
         )
 
-    # print(response.text)
-
     with open(response_file_path, "w", encoding="utf-8") as f:
         f.write(response.text)
         
     memory_entries = json.loads(response.text)
-    # print(memory_entries)
+    print(memory_entries)
+    
     
     # 處理 big five
     big_five_path = get_data_path(os.path.join('record', 'big_five.json'))
-    big_five_data = memory_entries['Big Five 預測']
+    big_five_data = memory_entries['BigFivePrediction']
     
     if os.path.exists(big_five_path):        
         with open(big_five_path, "r", encoding="utf-8") as f:
@@ -65,6 +68,53 @@ def send_to_gemini(usr_prompt:str, response_file_path:str):
         with open(big_five_path, 'w', encoding='utf-8') as f:
             json.dump(big_five_data, f, ensure_ascii=False, indent=4)
             
+            
+    # 處理向量資料庫
+    summary = memory_entries['Summary']
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    vectors = model.encode(summary)
+    if isinstance(vectors, list):  # 有些版本會回傳 list
+        vectors = np.array(vectors)
+
+    vectors = vectors.reshape(1, -1)  # 強制轉為 2D
+    
+    # 向量維度必須與模型輸出一致（MiniLM-L6-v2 是 384 維）
+    dim = 384
+    index_path = get_data_path("record/memory_index.faiss")
+
+    # 如果已存在，載入；否則新建
+    if os.path.exists(index_path):
+        index = faiss.read_index(index_path)
+    else:
+        index = faiss.IndexFlatL2(dim)
+        
+    # 加入新數據
+    index.add(vectors)
+    faiss.write_index(index, index_path)
+    
+    text_path = "record/memory_texts.json"
+
+    # 構造儲存內容（建議保留 raw data）
+    stored_entries = [
+        {
+            "summary": summary,
+            "raw": memory_entries
+        }
+    ]
+
+    # 若檔案存在就 append 新的
+    if os.path.exists(text_path):
+        with open(text_path, "r") as f:
+            existing = json.load(f)
+    else:
+        existing = []
+
+    existing.extend(stored_entries)
+
+    with open(text_path, "w") as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
+
+      
 
 
 if __name__ == '__main__':
