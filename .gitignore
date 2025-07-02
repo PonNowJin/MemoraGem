@@ -193,6 +193,8 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+generate_output_1.txt
+generate_output_2.txt
 generate_output.txt
 big_five.json
 record
