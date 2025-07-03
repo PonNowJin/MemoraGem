@@ -53,4 +53,4 @@ if st.button("送出") and user_input:
         "mem_result": summary,
     })
 
-    st.experimental_rerun()  # 自動刷新並往下捲
+    st.rerun()  # 自動刷新並往下捲

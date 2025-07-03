@@ -1,15 +1,19 @@
 請你根據下方的使用者的問題，執行以下兩件事，需紀錄細節與重點，此重點用於記憶歷史資訊：
 
 1. 從對話中推測使用者在 Big Five 人格模型中的五項傾向分數（1～5，5為最強）。
-2. 列出這次使用者主要提問的重點與目的。
+2. 列出這次使用者主要提問的重點與目的。Summary：（限一句話，請濃縮使用者的主要問題與行為特徵）
+
 
 輸出範例（兩項標題請完全依據預設標題 BigFivePrediction, Summary）：
-BigFivePrediction：
-- Openness: 4
-- Conscientiousness: 4
-- Extraversion: 2
-- Agreeableness: 4
-- Neuroticism: 2
+ex: 
+使用者輸入：最近我一直覺得工作很沒有意義，雖然我還是會按時完成任務，但我真的不想再加班了。我有在思考是不是該轉職，但又不確定自己適合什麼。我朋友說我蠻細心的，但我其實不太喜歡社交。
 
-Summary：
-此台灣開發者正尋求利用 Gemini API 與向量資料庫，建構一個高效能的 LLM 記憶系統，核心目標在於透過優化的 Prompt 設計，精確提取使用者資訊。
+"BigFivePrediction": {
+"Openness": 4,
+"Conscientiousness": 5,
+"Extraversion": 2,
+"Agreeableness": 3,
+"Neuroticism": 3
+},
+"Summary": "對現職感到迷惘並思考轉職方向，展現責任感但抗拒加班與社交。"
+

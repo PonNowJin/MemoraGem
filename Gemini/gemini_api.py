@@ -43,6 +43,7 @@ def store_data(usr_prompt:str, response_file_path:str=None):
         ],
         config={
             "response_mime_type": "application/json",
+            "temperature" : 0.6,
         }
         )
 
@@ -141,7 +142,7 @@ def send_to_gemini(usr_prompt: str, response_file_path:str = None):
         big_five_data = None
     
     # 製作 prompt（沒加入 big five)
-    prompt = f"使用者詢問(只需對此回答其餘不用，不用說了解）：{usr_prompt}, 相關歷史紀錄（參考）：{history}"
+    prompt = f"使用者詢問(只需對此回答其餘不用，嘗試多與使用者聊天，不用說了解）：{usr_prompt}, 相關歷史紀錄（參考，若與當前詢問較無關聯不需回答）：{history}"
     
     client = genai.Client(api_key=API_KEY)
     response = client.models.generate_content(
@@ -149,6 +150,9 @@ def send_to_gemini(usr_prompt: str, response_file_path:str = None):
         contents=[
             prompt, 
         ],
+        config={
+            "temperature" : 1.5,
+        }
         )
     
     print(response.text)
@@ -160,7 +164,7 @@ def send_to_gemini(usr_prompt: str, response_file_path:str = None):
     return {'response': response.text, 'ref': search_results}
 
 
-def search_memory(query: str, top_k: int = 5, distance_threshold: float = 1.2):
+def search_memory(query: str, top_k: int = 5, distance_threshold: float = 1):
     """ 從記憶中找出 top k 最相關紀錄
 
     Args:
