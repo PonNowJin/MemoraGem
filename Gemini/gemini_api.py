@@ -7,7 +7,7 @@ import httpx
 import json
 import numpy as np
 import faiss
-from tools import get_data_path
+from Gemini.tools import get_data_path
 from sentence_transformers import SentenceTransformer
 load_dotenv()
 
@@ -138,10 +138,10 @@ def send_to_gemini(usr_prompt: str, response_file_path:str = None):
         with open(big_five_path, "r", encoding="utf-8") as f:
             big_five_data = json.load(f)
     else:
-        pass
+        big_five_data = None
     
-    # 製作 prompt
-    prompt = f"使用者詢問(主要回答）：{usr_prompt}, 相關歷史紀錄（參考）：{history}, 使用者人格特質：{big_five_data}"
+    # 製作 prompt（沒加入 big five)
+    prompt = f"使用者詢問(只需對此回答其餘不用，不用說了解）：{usr_prompt}, 相關歷史紀錄（參考）：{history}"
     
     client = genai.Client(api_key=API_KEY)
     response = client.models.generate_content(
@@ -156,9 +156,11 @@ def send_to_gemini(usr_prompt: str, response_file_path:str = None):
     if response_file_path:
         with open(response_file_path, "w", encoding="utf-8") as f:
             f.write(response.text)
+            
+    return {'response': response.text, 'ref': search_results}
 
 
-def search_memory(query: str, top_k: int = 3, distance_threshold: float = 1.2):
+def search_memory(query: str, top_k: int = 5, distance_threshold: float = 1.2):
     """ 從記憶中找出 top k 最相關紀錄
 
     Args:

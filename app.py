@@ -14,6 +14,7 @@ user_input = st.text_input("💬 請輸入你的問題")
 if st.button("送出") and user_input:
     # 送給 Gemini 回應
     gemini_reply = send_to_gemini(user_input)
+    store_data(user_input)
 
     # 顯示結果
     st.markdown("### 🤖 Gemini 的回覆")

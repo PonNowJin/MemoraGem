@@ -3,4 +3,6 @@
 
 ```bash
 pip install streamlit sentence-transformers faiss-cpu google-generativeai
+
+streamlit run app.py
 ```
