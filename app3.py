@@ -41,8 +41,12 @@ user_input = st.text_input("💬 請輸入你的問題")
 
 if st.button("送出") and user_input:
     # 加歷史紀錄進 prompt
-    prompt = f"歷史紀錄：\n{history_prompt}\n使用者：{user_input}"
-    results = send_to_gemini(prompt)
+    contents = []
+    for chat in st.session_state.chat_history:
+        contents.append({"role": "user", "parts": [chat["user"]]})
+        contents.append({"role": "model", "parts": [chat["ai"]]})
+    
+    results = send_to_gemini(user_input, contents)
     store_data(user_input)
 
     # 加入對話歷史

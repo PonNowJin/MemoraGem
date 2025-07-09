@@ -1,8 +1,13 @@
 import os
+import sys
 from dotenv import load_dotenv
 import pathlib
+# 把專案根目錄加進 sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from google.genai import types
-from google import genai
+# from google import genai
+import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import httpx
 import json
 import numpy as np
@@ -12,12 +17,43 @@ from sentence_transformers import SentenceTransformer
 load_dotenv()
 
 API_KEY = os.getenv('GEMINI_API_KEY')
+genai.configure(api_key=API_KEY)
 
 
 TEXT_PATH = "record/memory_texts.json"
 FAISS_PATH = "record/memory_index.faiss"
 BIGFIVE_PATH = "record/big_five.json"
 
+
+model_summary = genai.GenerativeModel(
+            model_name='gemini-2.0-flash-001',
+            generation_config={
+                "response_mime_type": "application/json",
+                "temperature" : 0.6,
+            },
+            safety_settings={
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE
+            },
+            system_instruction = '你是善於抓取使用者對話細節的專家',
+        )
+
+model_chat = genai.GenerativeModel(
+            model_name='gemini-2.0-flash-001',
+            generation_config={
+                "response_mime_type": "application/json",
+                "temperature" : 1.5,
+            },
+            safety_settings={
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE
+            },
+        )
+chat = model_chat.start_chat(history=[])
 
 def store_data(usr_prompt:str, response_file_path:str=None):
     """使用 gemini 分析並儲存資料
@@ -26,7 +62,7 @@ def store_data(usr_prompt:str, response_file_path:str=None):
         usr_prompt: 使用者輸入的 prompt
         response_file_path: str
     """
-    client = genai.Client(api_key=API_KEY)
+    # client = genai.Client(api_key=API_KEY)
 
     # 原始 prompt
     prompt_path = get_data_path('prompt.txt')
@@ -36,6 +72,7 @@ def store_data(usr_prompt:str, response_file_path:str=None):
     # 加入目前使用者提問
     prompt += '使用者提問：' + usr_prompt
 
+    """
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=[
@@ -46,6 +83,8 @@ def store_data(usr_prompt:str, response_file_path:str=None):
             "temperature" : 0.6,
         }
         )
+    """
+    response = model_summary.generate_content(prompt)
 
     if response_file_path:
         with open(response_file_path, "w", encoding="utf-8") as f:
@@ -122,7 +161,16 @@ def store_data(usr_prompt:str, response_file_path:str=None):
         json.dump(existing, f, ensure_ascii=False, indent=2)
 
 
-def send_to_gemini(usr_prompt: str, response_file_path:str = None):
+# client_global = genai.Client(api_key=API_KEY)
+'''
+for m in genai.list_models():
+    print(f"Name: {m.name}")
+    print(f"Description: {m.description}")
+    print(f"Supported Generative Methods: {m.supported_generation_methods}")
+    print("-" * 20)
+'''
+
+def send_to_gemini(usr_prompt: str, contents: list = [], response_file_path:str = None):
     """ 處理使用者問題與回應
     
     """
@@ -142,18 +190,27 @@ def send_to_gemini(usr_prompt: str, response_file_path:str = None):
         big_five_data = None
     
     # 製作 prompt（沒加入 big five)
-    prompt = f"使用者詢問(只需對此回答其餘不用，嘗試多與使用者聊天，不用說了解）：{usr_prompt}, 相關歷史紀錄（參考，若與當前詢問較無關聯不需回答）：{history}"
+    with open('prompt_chat', 'r', encoding="utf-8") as f:
+        prompt_txt = f.read()
+    prompt = f"{prompt_txt}使用者詢問(只需對此回答其餘不用，嘗試多與使用者聊天，不用說了解）: \'{usr_prompt}\', 相關歷史紀錄（參考，若與當前詢問較無關聯不需回答）：\'{history}\'"
+
     
-    client = genai.Client(api_key=API_KEY)
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=[
-            prompt, 
+    print(contents)
+    
+    '''
+    global client_global
+    response = client_global.models.generate_content(
+        model = "gemini-2.0-flash",
+        contents = [
+            prompt    
         ],
-        config={
+        config = {
             "temperature" : 1.5,
         }
         )
+    '''
+    
+    response = chat.send_message(prompt)
     
     print(response.text)
 
@@ -209,8 +266,8 @@ def search_memory(query: str, top_k: int = 5, distance_threshold: float = 1):
 
 
 if __name__ == '__main__':
-    usr_prompt = '還記得我的職業嗎？'
+    usr_prompt = '我開飛機時都會想睡覺，我都不敢說，怕被取消飛行資格'
     out_path_1 = 'generate_output_1.txt'
     out_path_2 = 'generate_output_2.txt'
     send_to_gemini(usr_prompt, out_path_2)
-    store_data(usr_prompt, out_path_1)
+    # store_data(usr_prompt, out_path_1)
