@@ -161,16 +161,67 @@ def store_data(usr_prompt:str, response_file_path:str=None):
         json.dump(existing, f, ensure_ascii=False, indent=2)
 
 
-# client_global = genai.Client(api_key=API_KEY)
-'''
-for m in genai.list_models():
-    print(f"Name: {m.name}")
-    print(f"Description: {m.description}")
-    print(f"Supported Generative Methods: {m.supported_generation_methods}")
-    print("-" * 20)
-'''
+def store_data_2(data_json:str):
+    """儲存資料
 
-def send_to_gemini(usr_prompt: str, contents: list = [], response_file_path:str = None):
+    Args:
+        usr_prompt: 使用者輸入的 prompt
+        response_file_path: str
+    """ 
+    memory_entries = json.loads(data_json)
+    # print(memory_entries)
+            
+            
+    # 處理向量資料庫
+    summary = memory_entries['memory_summary']
+    if summary == '無需記憶':
+        return
+    
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    vectors = model.encode(summary)
+    if isinstance(vectors, list):  # 有些版本會回傳 list
+        vectors = np.array(vectors)
+
+    vectors = vectors.reshape(1, -1)  # 強制轉為 2D
+    
+    # 向量維度必須與模型輸出一致（MiniLM-L6-v2 是 384 維）
+    dim = 384
+    index_path = get_data_path(FAISS_PATH)
+
+    # 如果已存在，載入；否則新建
+    if os.path.exists(index_path):
+        index = faiss.read_index(index_path)
+    else:
+        index = faiss.IndexFlatL2(dim)
+        
+    # 加入新數據
+    index.add(vectors)
+    faiss.write_index(index, index_path)
+
+    # 構造儲存內容（建議保留 raw data）
+    stored_entries = [
+        {
+            "summary": summary,
+            "raw": memory_entries
+        }
+    ]
+
+    # 若檔案存在就 append 新的
+    text_path = get_data_path(TEXT_PATH)
+    if os.path.exists(text_path):
+        with open(text_path, "r") as f:
+            existing = json.load(f)
+    else:
+        existing = []
+
+    existing.extend(stored_entries)
+
+    with open(text_path, "w") as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
+            
+        
+
+def send_to_gemini(usr_prompt: str, response_file_path:str = None):
     """ 處理使用者問題與回應
     
     """
@@ -190,12 +241,10 @@ def send_to_gemini(usr_prompt: str, contents: list = [], response_file_path:str 
         big_five_data = None
     
     # 製作 prompt（沒加入 big five)
-    with open('prompt_chat', 'r', encoding="utf-8") as f:
+    prompt_chat_path = get_data_path('prompt_chat')
+    with open(prompt_chat_path, 'r', encoding="utf-8") as f:
         prompt_txt = f.read()
     prompt = f"{prompt_txt}使用者詢問(只需對此回答其餘不用，嘗試多與使用者聊天，不用說了解）: \'{usr_prompt}\', 相關歷史紀錄（參考，若與當前詢問較無關聯不需回答）：\'{history}\'"
-
-    
-    print(contents)
     
     '''
     global client_global
@@ -269,5 +318,7 @@ if __name__ == '__main__':
     usr_prompt = '我開飛機時都會想睡覺，我都不敢說，怕被取消飛行資格'
     out_path_1 = 'generate_output_1.txt'
     out_path_2 = 'generate_output_2.txt'
-    send_to_gemini(usr_prompt, out_path_2)
+    data_all = send_to_gemini(usr_prompt, out_path_2)
+    data_json = data_all['response']
     # store_data(usr_prompt, out_path_1)
+    store_data_2(data_json)
